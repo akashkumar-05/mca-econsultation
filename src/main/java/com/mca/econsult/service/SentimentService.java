@@ -39,20 +39,32 @@ public class SentimentService {
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
-            try {
-                ResponseEntity<String> response = restTemplate.postForEntity(
-                        aiServiceUrl + "/predict_legacy", entity, String.class);
+            // Retry logic for Hugging Face wake-up
+            int retries = 3;
+            boolean success = false;
+            while (retries > 0 && !success) {
+                try {
+                    ResponseEntity<String> response = restTemplate.postForEntity(
+                            aiServiceUrl + (aiServiceUrl.endsWith("/") ? "" : "/") + "predict_legacy", 
+                            entity, String.class);
 
-                List<Map<String, Object>> batchResults = objectMapper.readValue(
-                        response.getBody(), new TypeReference<List<Map<String, Object>>>() {});
-                allResults.addAll(batchResults);
-            } catch (Exception e) {
-                // If AI service fails, mark all as uncertain
-                for (int j = 0; j < batch.size(); j++) {
-                    Map<String, Object> fallback = new HashMap<>();
-                    fallback.put("label", "neutral");
-                    fallback.put("confidence", 0.0);
-                    allResults.add(fallback);
+                    List<Map<String, Object>> batchResults = objectMapper.readValue(
+                            response.getBody(), new TypeReference<List<Map<String, Object>>>() {});
+                    allResults.addAll(batchResults);
+                    success = true;
+                } catch (Exception e) {
+                    retries--;
+                    if (retries > 0) {
+                        try { Thread.sleep(2000); } catch (InterruptedException ie) {}
+                    } else {
+                        // Final fallback
+                        for (int j = 0; j < batch.size(); j++) {
+                            Map<String, Object> fallback = new HashMap<>();
+                            fallback.put("label", "neutral");
+                            fallback.put("confidence", 0.0);
+                            allResults.add(fallback);
+                        }
+                    }
                 }
             }
         }

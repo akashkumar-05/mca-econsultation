@@ -50,22 +50,31 @@ public class SummaryService {
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
-        try {
-            ResponseEntity<String> response = restTemplate.postForEntity(
-                    aiServiceUrl + "/summarize", entity, String.class);
+        // Retry logic for Hugging Face wake-up
+        int retries = 3;
+        while (retries > 0) {
+            try {
+                ResponseEntity<String> response = restTemplate.postForEntity(
+                        aiServiceUrl + (aiServiceUrl.endsWith("/") ? "" : "/") + "summarize", 
+                        entity, String.class);
 
-            Map<String, Object> result = objectMapper.readValue(response.getBody(), Map.class);
-            // Handle both new wrapped format {"success":true,"data":{"summary":"..."}}
-            // and legacy flat format {"summary":"..."}
-            Object dataObj = result.get("data");
-            if (dataObj instanceof Map) {
-                Map<String, Object> data = (Map<String, Object>) dataObj;
-                return (String) data.get("summary");
+                Map<String, Object> result = objectMapper.readValue(response.getBody(), Map.class);
+                Object dataObj = result.get("data");
+                if (dataObj instanceof Map) {
+                    Map<String, Object> data = (Map<String, Object>) dataObj;
+                    return (String) data.get("summary");
+                }
+                return (String) result.get("summary");
+            } catch (Exception e) {
+                retries--;
+                if (retries > 0) {
+                    try { Thread.sleep(2000); } catch (InterruptedException ie) {}
+                } else {
+                    return "Summary generation failed: " + e.getMessage();
+                }
             }
-            return (String) result.get("summary");
-        } catch (Exception e) {
-            return "Summary generation failed: " + e.getMessage();
         }
+        return "Summary generation failed after retries.";
     }
 
     /**
