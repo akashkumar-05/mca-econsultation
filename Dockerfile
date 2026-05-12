@@ -5,7 +5,7 @@ COPY . .
 RUN chmod +x mvnw && ./mvnw clean package -DskipTests
 
 # --- Run Stage ---
-FROM openjdk:17-jdk-slim
+FROM eclipse-temurin:17-jre-focal
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 
