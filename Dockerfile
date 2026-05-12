@@ -1,0 +1,19 @@
+# --- Build Stage ---
+FROM maven:3.8.4-openjdk-17-slim AS build
+WORKDIR /app
+COPY . .
+RUN chmod +x mvnw && ./mvnw clean package -DskipTests
+
+# --- Run Stage ---
+FROM openjdk:17-jdk-slim
+WORKDIR /app
+COPY --from=build /app/target/*.jar app.jar
+
+# Create upload directory
+RUN mkdir -p uploads && chmod -R 777 uploads
+
+# Expose port
+EXPOSE 8080
+
+# Run application
+ENTRYPOINT ["java", "-jar", "app.jar"]
