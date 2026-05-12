@@ -54,9 +54,13 @@ public class SummaryService {
         int retries = 3;
         while (retries > 0) {
             try {
-                ResponseEntity<String> response = restTemplate.postForEntity(
-                        aiServiceUrl + (aiServiceUrl.endsWith("/") ? "" : "/") + "summarize", 
-                        entity, String.class);
+                String url = aiServiceUrl.trim();
+                if (url.endsWith("/")) {
+                    url = url.substring(0, url.length() - 1);
+                }
+                url += "/summarize";
+
+                ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
 
                 Map<String, Object> result = objectMapper.readValue(response.getBody(), Map.class);
                 Object dataObj = result.get("data");

@@ -44,9 +44,13 @@ public class SentimentService {
             boolean success = false;
             while (retries > 0 && !success) {
                 try {
-                    ResponseEntity<String> response = restTemplate.postForEntity(
-                            aiServiceUrl + (aiServiceUrl.endsWith("/") ? "" : "/") + "predict_legacy", 
-                            entity, String.class);
+                    String url = aiServiceUrl.trim();
+                    if (url.endsWith("/")) {
+                        url = url.substring(0, url.length() - 1);
+                    }
+                    url += "/predict";
+
+                    ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
 
                     List<Map<String, Object>> batchResults = objectMapper.readValue(
                             response.getBody(), new TypeReference<List<Map<String, Object>>>() {});
