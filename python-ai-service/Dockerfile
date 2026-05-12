@@ -5,26 +5,28 @@ FROM python:3.9-slim
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 ENV PORT 7860
+ENV HOME=/home/user
 
-# Set working directory
-WORKDIR /app
+# Create a non-root user (Hugging Face requirement)
+RUN useradd -m -u 1000 user
+USER user
+WORKDIR $HOME/app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+# Set path
+ENV PATH="/home/user/.local/bin:$PATH"
 
 # Copy requirements and install
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY --chown=user requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the code
-COPY . .
+COPY --chown=user . .
 
-# Create directory for logs and models (ensure write permissions for Hugging Face)
+# Create directory for logs and models
 RUN mkdir -p logs evaluation static && chmod -R 777 logs evaluation static
 
-# Pre-download models during build to speed up startup
+# Pre-download models during build
 RUN python -c "from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline; \
     pipeline('sentiment-analysis', model='cardiffnlp/twitter-roberta-base-sentiment-latest'); \
     pipeline('summarization', model='facebook/bart-large-cnn')"
@@ -32,5 +34,5 @@ RUN python -c "from transformers import AutoTokenizer, AutoModelForSequenceClass
 # Expose the port Hugging Face expects
 EXPOSE 7860
 
-# Start the server
+# Start the server using the Flask port Hugging Face expects
 CMD ["python", "ai_server.py"]
