@@ -1,0 +1,41 @@
+# Java / Maven
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+.mvn/wrapper/maven-wrapper.jar
+.metadata/
+.project
+.settings/
+.classpath
+.factorypath
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+ENV/
+.env
+.venv
+logs/
+evaluation/
+static/*.png
+static/*.pdf
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*.DS_Store
+
+# Application specific
+uploads/
+src/main/resources/static/report.pdf
+src/main/resources/static/last_analysis.csv
+python-ai-service/logs/
+python-ai-service/static/*.png

@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCA eConsultation - Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #0a0e1a; min-height: 100vh; color: white; }
+
+        /* Navbar */
+        .navbar {
+            background: rgba(10,14,26,0.8); backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding: 0 40px; height: 64px;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 100;
+        }
+        .nav-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .nav-brand-icon {
+            width: 36px; height: 36px; background: linear-gradient(135deg, #6366f1, #06b6d4);
+            border-radius: 10px; display: flex; align-items: center; justify-content: center;
+            font-size: 14px; color: white; font-weight: 800;
+        }
+        .nav-brand-text { color: white; font-size: 16px; font-weight: 700; }
+        .nav-brand-text span { color: #06b6d4; }
+        .nav-links { display: flex; align-items: center; gap: 8px; list-style: none; }
+        .nav-links a {
+            color: rgba(255,255,255,0.6); text-decoration: none; font-size: 14px;
+            font-weight: 500; padding: 8px 16px; border-radius: 8px; transition: all 0.2s;
+        }
+        .nav-links a:hover { color: white; background: rgba(255,255,255,0.06); }
+        .btn-nav-login { background: linear-gradient(135deg, #6366f1, #4f46e5) !important; color: white !important; font-weight: 600 !important; }
+        .btn-nav-logout { background: rgba(255,255,255,0.06) !important; border: 1px solid rgba(255,255,255,0.1) !important; }
+
+        .container { max-width: 1280px; margin: 0 auto; padding: 30px 24px; }
+
+        /* Page header */
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; }
+        .page-header h1 { font-size: 28px; font-weight: 800; letter-spacing: -1px; }
+        .page-header h1 .gradient-text {
+            background: linear-gradient(135deg, #6366f1, #06b6d4);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .page-header .file-info { color: rgba(255,255,255,0.4); font-size: 13px; margin-top: 4px; }
+        .download-btns { display: flex; gap: 10px; }
+        .btn {
+            padding: 10px 20px; border: none; border-radius: 10px; font-size: 13px;
+            font-weight: 600; cursor: pointer; text-decoration: none;
+            display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+        .btn:hover { transform: translateY(-1px); }
+        .btn-csv { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
+        .btn-pdf { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.2); }
+        .btn-back { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.1); }
+
+        /* KPI Cards */
+        .kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 28px; }
+        .kpi-card {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px; padding: 20px; text-align: center;
+            position: relative; overflow: hidden;
+        }
+        .kpi-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+        }
+        .kpi-total::before { background: linear-gradient(90deg, #6366f1, #818cf8); }
+        .kpi-positive::before { background: linear-gradient(90deg, #10b981, #34d399); }
+        .kpi-neutral::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+        .kpi-negative::before { background: linear-gradient(90deg, #ef4444, #f87171); }
+        .kpi-uncertain::before { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
+        .kpi-value { font-size: 30px; font-weight: 800; margin-bottom: 4px; }
+        .kpi-total .kpi-value { color: #818cf8; }
+        .kpi-positive .kpi-value { color: #34d399; }
+        .kpi-neutral .kpi-value { color: #fbbf24; }
+        .kpi-negative .kpi-value { color: #f87171; }
+        .kpi-uncertain .kpi-value { color: #a78bfa; }
+        .kpi-label { font-size: 12px; color: rgba(255,255,255,0.4); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* Tabs */
+        .tabs {
+            display: flex; gap: 4px; margin-bottom: 24px;
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 14px; padding: 4px; overflow: hidden;
+        }
+        .tab-btn {
+            flex: 1; padding: 12px; border: none;
+            background: transparent; font-size: 13px; font-weight: 600;
+            color: rgba(255,255,255,0.4); cursor: pointer; transition: all 0.2s;
+            border-radius: 10px; font-family: 'Inter', sans-serif;
+        }
+        .tab-btn.active { color: white; background: rgba(99,102,241,0.2); }
+        .tab-btn:hover:not(.active) { color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.03); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Charts grid - 2 columns */
+        .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+        .chart-card {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px; padding: 24px;
+        }
+        .chart-card h3 { color: rgba(255,255,255,0.8); font-size: 14px; font-weight: 600; margin-bottom: 16px; }
+        .chart-container { position: relative; height: 280px; }
+        .wordcloud-img {
+            width: 100%; height: 260px; object-fit: contain; border-radius: 10px;
+            background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04);
+        }
+        .wc-placeholder {
+            height: 260px; display: flex; align-items: center; justify-content: center;
+            color: rgba(255,255,255,0.2); font-size: 14px;
+            background: rgba(255,255,255,0.02); border-radius: 10px;
+        }
+
+        /* Summary cards */
+        .summaries-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
+        .summary-card {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px; padding: 20px; position: relative; overflow: hidden;
+        }
+        .summary-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+        .summary-card.positive::before { background: #10b981; }
+        .summary-card.neutral::before { background: #f59e0b; }
+        .summary-card.negative::before { background: #ef4444; }
+        .summary-card h4 { font-size: 13px; font-weight: 700; margin-bottom: 10px; }
+        .summary-card p { font-size: 13px; color: rgba(255,255,255,0.5); line-height: 1.7; }
+
+        /* Tables */
+        .table-card {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px; padding: 24px; overflow-x: auto;
+        }
+        .table-card h3 { color: rgba(255,255,255,0.8); font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+        .search-box {
+            width: 100%; padding: 12px 16px;
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px; color: white; font-size: 14px;
+            font-family: 'Inter', sans-serif; outline: none; margin-bottom: 16px;
+        }
+        .search-box:focus { border-color: #6366f1; }
+        .search-box::placeholder { color: rgba(255,255,255,0.25); }
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            background: rgba(255,255,255,0.03); padding: 12px 16px; text-align: left;
+            font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        td {
+            padding: 12px 16px; font-size: 13px; color: rgba(255,255,255,0.7);
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        tr:hover td { background: rgba(255,255,255,0.02); }
+        .badge {
+            display: inline-block; padding: 4px 12px; border-radius: 20px;
+            font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;
+        }
+        .badge-positive { background: rgba(16,185,129,0.15); color: #34d399; }
+        .badge-neutral { background: rgba(245,158,11,0.15); color: #fbbf24; }
+        .badge-negative { background: rgba(239,68,68,0.15); color: #f87171; }
+        .badge-uncertain { background: rgba(139,92,246,0.15); color: #a78bfa; }
+        .confidence-bar {
+            width: 80px; height: 6px; background: rgba(255,255,255,0.06);
+            border-radius: 3px; overflow: hidden; display: inline-block; vertical-align: middle; margin-right: 8px;
+        }
+        .confidence-fill { height: 100%; border-radius: 3px; }
+
+        /* Topics */
+        .topic-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 14px; }
+        .topic-card {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px; padding: 20px;
+        }
+        .topic-card h4 {
+            font-size: 14px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .topic-count {
+            background: rgba(255,255,255,0.06); padding: 3px 10px; border-radius: 20px;
+            font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 600;
+        }
+        .topic-item {
+            padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+            font-size: 13px; color: rgba(255,255,255,0.5);
+            display: flex; justify-content: space-between; align-items: center; gap: 12px;
+        }
+        .topic-item:last-child { border-bottom: none; }
+
+        .no-data { text-align: center; padding: 80px 20px; color: rgba(255,255,255,0.3); }
+        .no-data h3 { font-size: 20px; margin-bottom: 10px; color: rgba(255,255,255,0.5); }
+
+        @media (max-width: 1024px) { .charts-grid { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 768px) {
+            .charts-grid, .summaries-grid { grid-template-columns: 1fr; }
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+            .page-header { flex-direction: column; gap: 16px; align-items: flex-start; }
+            .navbar { padding: 0 16px; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="nav-brand">
+            <div class="nav-brand-icon">M</div>
+            <div class="nav-brand-text">MCA <span>eConsult</span></div>
+        </a>
+        <ul class="nav-links">
+            <li><a th:href="@{/}">Upload</a></li>
+            <li><a th:href="@{/history}">History</a></li>
+            <li th:if="${isLoggedIn}">
+                <a th:href="@{/logout}" class="btn-nav-logout" th:text="'Logout (' + ${username} + ')'">Logout</a>
+            </li>
+            <li th:unless="${isLoggedIn}">
+                <a th:href="@{/login}" class="btn-nav-login">Sign In</a>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <div th:if="${analysisComplete == null}" class="no-data">
+            <h3>No Analysis Data</h3>
+            <p>Upload a CSV file to see the analysis dashboard.</p>
+            <a th:href="@{/}" class="btn btn-back" style="margin-top:20px;">← Go to Upload</a>
+        </div>
+
+        <div th:if="${analysisComplete}">
+            <div class="page-header">
+                <div>
+                    <h1><span class="gradient-text">Analysis Dashboard</span></h1>
+                    <p class="file-info" th:text="'📄 ' + ${filename}"></p>
+                </div>
+                <div class="download-btns">
+                    <a th:href="@{/download/pdf}" class="btn btn-pdf">📄 PDF Report</a>
+                    <a th:href="@{/}" class="btn btn-back">← New Analysis</a>
+                </div>
+            </div>
+
+            <!-- KPI Cards -->
+            <div class="kpi-grid">
+                <div class="kpi-card kpi-total">
+                    <div class="kpi-value" th:text="${totalComments}">0</div>
+                    <div class="kpi-label">Total Comments</div>
+                </div>
+                <div class="kpi-card kpi-positive">
+                    <div class="kpi-value" th:text="${positivePct} + '%'">0%</div>
+                    <div class="kpi-label">Positive</div>
+                </div>
+                <div class="kpi-card kpi-neutral">
+                    <div class="kpi-value" th:text="${neutralPct} + '%'">0%</div>
+                    <div class="kpi-label">Neutral</div>
+                </div>
+                <div class="kpi-card kpi-negative">
+                    <div class="kpi-value" th:text="${negativePct} + '%'">0%</div>
+                    <div class="kpi-label">Negative</div>
+                </div>
+                <div class="kpi-card kpi-uncertain">
+                    <div class="kpi-value" th:text="${uncertainCount}">0</div>
+                    <div class="kpi-label">Uncertain</div>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('overview', this)">📈 Overview</button>
+                <button class="tab-btn" onclick="switchTab('topics', this)">🏷 Topics</button>
+                <button class="tab-btn" onclick="switchTab('review', this)">⚠️ Needs Review</button>
+                <button class="tab-btn" onclick="switchTab('all', this)">📋 All Comments</button>
+            </div>
+
+            <!-- Overview Tab -->
+            <div id="tab-overview" class="tab-content active">
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3>🥧 Sentiment Distribution</h3>
+                        <div class="chart-container"><canvas id="pieChart"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>📋 Final Verdict / Policy Decision</h3>
+                        <div style="height: 280px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.1); padding: 20px;">
+                            <div th:style="'width: 80px; height: 80px; border-radius: 50%; background:' + ${statusColor} + '; box-shadow: 0 0 30px ' + ${statusColor} + '; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; font-size: 32px;'">
+                                <span th:if="${statusColor == '#10b981'}">✔️</span>
+                                <span th:if="${statusColor == '#f59e0b'}">⚠️</span>
+                                <span th:if="${statusColor == '#ef4444'}">❌</span>
+                                <span th:if="${statusColor == '#8b5cf6'}">⚙️</span>
+                            </div>
+                            <h2 th:text="${policyStatus}" th:style="'color:' + ${statusColor} + '; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 12px;'">STATUS</h2>
+                            <p style="color: rgba(255,255,255,0.4); font-size: 14px; line-height: 1.5; max-width: 250px;">Based on AI analysis of all stakeholder comments.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="summaries-grid">
+                    <div class="summary-card positive">
+                        <h4 style="color:#34d399;">✅ Positive Summary</h4>
+                        <p th:text="${summaries != null ? summaries['positive'] : 'No summary available'}"></p>
+                    </div>
+                    <div class="summary-card neutral">
+                        <h4 style="color:#fbbf24;">➖ Neutral Summary</h4>
+                        <p th:text="${summaries != null ? summaries['neutral'] : 'No summary available'}"></p>
+                    </div>
+                    <div class="summary-card negative">
+                        <h4 style="color:#f87171;">❌ Negative Summary</h4>
+                        <p th:text="${summaries != null ? summaries['negative'] : 'No summary available'}"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Topics Tab -->
+            <div id="tab-topics" class="tab-content">
+                <div class="topic-grid" th:if="${topics != null}">
+                    <div th:each="topic : ${topics}" class="topic-card">
+                        <h4>
+                            <span th:text="${topic.key}">Topic</span>
+                            <span class="topic-count" th:text="${topic.value.size()} + ' comments'">0</span>
+                        </h4>
+                        <div th:each="item : ${topic.value}" th:if="${#lists.size(topic.value) > 0}" class="topic-item">
+                            <span th:text="${#strings.abbreviate(item['text'], 70)}">Text</span>
+                            <span class="badge" th:classappend="'badge-' + ${item['label']}" th:text="${item['label']}">label</span>
+                        </div>
+                        <div th:if="${#lists.size(topic.value) == 0}" style="color:rgba(255,255,255,0.2); padding:10px 0; font-size:13px;">
+                            No comments in this category
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Needs Review Tab -->
+            <div id="tab-review" class="tab-content">
+                <div class="table-card">
+                    <h3>⚠️ Uncertain Predictions (Confidence &lt; 60%)</h3>
+                    <table th:if="${uncertainComments != null && !uncertainComments.isEmpty()}">
+                        <thead><tr><th>#</th><th>Comment</th><th>Label</th><th>Confidence</th></tr></thead>
+                        <tbody>
+                            <tr th:each="item, stat : ${uncertainComments}">
+                                <td th:text="${stat.index + 1}">1</td>
+                                <td th:text="${item['text']}">Comment</td>
+                                <td><span class="badge" th:classappend="'badge-' + ${item['label']}" th:text="${item['label']}">label</span></td>
+                                <td>
+                                    <div class="confidence-bar">
+                                        <div class="confidence-fill"
+                                             th:style="'width:' + ${item['confidence']} * 100 + '%; background:' + (${item['label'] == 'positive'} ? '#34d399' : (${item['label'] == 'negative'} ? '#f87171' : '#fbbf24')) + ';'"></div>
+                                    </div>
+                                    <span th:text="${#numbers.formatDecimal(item['confidence'] * 100, 1, 1)} + '%'">0%</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div th:if="${uncertainComments == null || uncertainComments.isEmpty()}" style="text-align:center; padding:40px; color:rgba(255,255,255,0.3);">
+                        🎉 All predictions have high confidence scores.
+                    </div>
+                </div>
+            </div>
+
+            <!-- All Comments Tab -->
+            <div id="tab-all" class="tab-content">
+                <div class="table-card">
+                    <h3>📋 All Comments</h3>
+                    <input type="text" class="search-box" id="searchInput" placeholder="🔍 Search comments..." onkeyup="filterTable()">
+                    <table id="commentsTable" th:if="${allComments != null && !allComments.isEmpty()}">
+                        <thead><tr><th>#</th><th>Comment</th><th>Sentiment</th><th>Confidence</th></tr></thead>
+                        <tbody>
+                            <tr th:each="item, stat : ${allComments}">
+                                <td th:text="${stat.index + 1}">1</td>
+                                <td th:text="${item['text']}">Comment</td>
+                                <td><span class="badge" th:classappend="'badge-' + ${item['label']}" th:text="${item['label']}">label</span></td>
+                                <td>
+                                    <div class="confidence-bar">
+                                        <div class="confidence-fill"
+                                             th:style="'width:' + ${item['confidence']} * 100 + '%; background:' + (${item['label'] == 'positive'} ? '#34d399' : (${item['label'] == 'negative'} ? '#f87171' : '#fbbf24')) + ';'"></div>
+                                    </div>
+                                    <span th:text="${#numbers.formatDecimal(item['confidence'] * 100, 1, 1)} + '%'">0%</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:if="${analysisComplete}">
+        Chart.register(ChartDataLabels);
+        const positiveCount = [[${positiveCount}]];
+        const neutralCount = [[${neutralCount}]];
+        const negativeCount = [[${negativeCount}]];
+        const total = positiveCount + neutralCount + negativeCount;
+
+        // Pie Chart
+        new Chart(document.getElementById('pieChart'), {
+            type: 'pie',
+            data: {
+                labels: ['Positive (' + positiveCount + ')', 'Neutral (' + neutralCount + ')', 'Negative (' + negativeCount + ')'],
+                datasets: [{
+                    data: [positiveCount, neutralCount, negativeCount],
+                    backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                    borderWidth: 2, borderColor: '#0a0e1a', hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { padding: 14, font: { size: 12, weight: '600', family: 'Inter' }, color: 'rgba(255,255,255,0.6)', usePointStyle: true, pointStyle: 'circle' } },
+                    datalabels: {
+                        color: '#fff', font: { weight: '700', size: 13, family: 'Inter' },
+                        formatter: function(v) { if (!v) return ''; return ((v/total)*100).toFixed(1) + '%'; }
+                    }
+                }
+            }
+        });
+
+
+        function switchTab(name, btn) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + name).classList.add('active');
+            btn.classList.add('active');
+        }
+        function filterTable() {
+            const q = document.getElementById('searchInput').value.toLowerCase();
+            document.querySelectorAll('#commentsTable tbody tr').forEach(r => { r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none'; });
+        }
+    </script>
+</body>
+</html>

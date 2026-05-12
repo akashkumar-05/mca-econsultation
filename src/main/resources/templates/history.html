@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCA eConsultation - History</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #0a0e1a; min-height: 100vh; color: white; }
+        .navbar {
+            background: rgba(10,14,26,0.8); backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding: 0 40px; height: 64px;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 100;
+        }
+        .nav-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .nav-brand-icon {
+            width: 36px; height: 36px; background: linear-gradient(135deg, #6366f1, #06b6d4);
+            border-radius: 10px; display: flex; align-items: center; justify-content: center;
+            font-size: 14px; color: white; font-weight: 800;
+        }
+        .nav-brand-text { color: white; font-size: 16px; font-weight: 700; }
+        .nav-brand-text span { color: #06b6d4; }
+        .nav-links { display: flex; align-items: center; gap: 8px; list-style: none; }
+        .nav-links a {
+            color: rgba(255,255,255,0.6); text-decoration: none; font-size: 14px;
+            font-weight: 500; padding: 8px 16px; border-radius: 8px; transition: all 0.2s;
+        }
+        .nav-links a:hover { color: white; background: rgba(255,255,255,0.06); }
+        .nav-links .active { color: white; background: rgba(99,102,241,0.15); }
+        .btn-nav-login { background: linear-gradient(135deg, #6366f1, #4f46e5) !important; color: white !important; font-weight: 600 !important; }
+        .btn-nav-logout { background: rgba(255,255,255,0.06) !important; border: 1px solid rgba(255,255,255,0.1) !important; }
+        .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
+        .page-header { margin-bottom: 28px; }
+        .page-header h1 { font-size: 28px; font-weight: 800; letter-spacing: -1px; }
+        .page-header h1 .gradient-text {
+            background: linear-gradient(135deg, #6366f1, #06b6d4);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .page-header p { color: rgba(255,255,255,0.4); font-size: 14px; margin-top: 6px; }
+        .history-card {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px; overflow: hidden;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            background: rgba(255,255,255,0.03); padding: 14px 20px; text-align: left;
+            font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        td {
+            padding: 14px 20px; font-size: 14px; color: rgba(255,255,255,0.7);
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        tr:hover td { background: rgba(255,255,255,0.02); }
+        .pct-bar {
+            display: flex; height: 6px; border-radius: 3px; overflow: hidden;
+            background: rgba(255,255,255,0.06); width: 120px;
+        }
+        .pct-positive { background: #10b981; }
+        .pct-neutral { background: #f59e0b; }
+        .pct-negative { background: #ef4444; }
+        .badge {
+            display: inline-block; padding: 3px 10px; border-radius: 20px;
+            font-size: 11px; font-weight: 700;
+            background: rgba(139,92,246,0.15); color: #a78bfa;
+        }
+        .empty-state { text-align: center; padding: 80px 20px; color: rgba(255,255,255,0.3); }
+        .empty-state h3 { font-size: 20px; margin-bottom: 10px; color: rgba(255,255,255,0.5); }
+        .btn-upload {
+            display: inline-block; margin-top: 20px; padding: 12px 28px;
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white; text-decoration: none; border-radius: 12px;
+            font-weight: 600; font-size: 14px; transition: all 0.3s;
+        }
+        .btn-upload:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(99,102,241,0.35); }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="nav-brand">
+            <div class="nav-brand-icon">M</div>
+            <div class="nav-brand-text">MCA <span>eConsult</span></div>
+        </a>
+        <ul class="nav-links">
+            <li><a th:href="@{/}">Upload</a></li>
+            <li><a th:href="@{/history}" class="active">History</a></li>
+            <li th:if="${isLoggedIn}">
+                <a th:href="@{/logout}" class="btn-nav-logout" th:text="'Logout (' + ${username} + ')'">Logout</a>
+            </li>
+            <li th:unless="${isLoggedIn}">
+                <a th:href="@{/login}" class="btn-nav-login">Sign In</a>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>📜 <span class="gradient-text">Analysis History</span></h1>
+            <p th:if="${isLoggedIn}" th:text="'Showing history for: ' + ${username}">History</p>
+            <p th:unless="${isLoggedIn}">Showing all public analysis history</p>
+        </div>
+
+        <div class="history-card">
+            <table th:if="${histories != null && !histories.isEmpty()}">
+                <thead>
+                    <tr><th>#</th><th>Filename</th><th>Date</th><th>Distribution</th><th>Positive</th><th>Neutral</th><th>Negative</th><th>Uncertain</th></tr>
+                </thead>
+                <tbody>
+                    <tr th:each="h, stat : ${histories}">
+                        <td th:text="${stat.index + 1}">1</td>
+                        <td th:text="${h.filename}">file.csv</td>
+                        <td th:text="${#temporals.format(h.timestamp, 'dd MMM yyyy, HH:mm')}">Date</td>
+                        <td>
+                            <div class="pct-bar">
+                                <div class="pct-positive" th:style="'width:' + ${h.positivePct} + '%'"></div>
+                                <div class="pct-neutral" th:style="'width:' + ${h.neutralPct} + '%'"></div>
+                                <div class="pct-negative" th:style="'width:' + ${h.negativePct} + '%'"></div>
+                            </div>
+                        </td>
+                        <td th:text="${#numbers.formatDecimal(h.positivePct, 1, 1)} + '%'">0%</td>
+                        <td th:text="${#numbers.formatDecimal(h.neutralPct, 1, 1)} + '%'">0%</td>
+                        <td th:text="${#numbers.formatDecimal(h.negativePct, 1, 1)} + '%'">0%</td>
+                        <td><span class="badge" th:text="${h.uncertainCount}">0</span></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div th:if="${histories == null || histories.isEmpty()}" class="empty-state">
+                <h3>No Analysis History</h3>
+                <p>No analyses have been performed yet.</p>
+                <a th:href="@{/}" class="btn-upload">📊 Upload CSV</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

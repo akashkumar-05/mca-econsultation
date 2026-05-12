@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCA eConsultation - Sentiment Analysis</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #0a0e1a; min-height: 100vh; color: white; }
+
+        /* Navbar */
+        .navbar {
+            background: rgba(10, 14, 26, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding: 0 40px; height: 64px;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 100;
+        }
+        .nav-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .nav-brand-icon {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, #6366f1, #06b6d4);
+            border-radius: 10px; display: flex; align-items: center; justify-content: center;
+            font-size: 14px; color: white; font-weight: 800;
+        }
+        .nav-brand-text { color: white; font-size: 16px; font-weight: 700; }
+        .nav-brand-text span { color: #06b6d4; }
+        .nav-links { display: flex; align-items: center; gap: 8px; list-style: none; }
+        .nav-links a {
+            color: rgba(255,255,255,0.6); text-decoration: none; font-size: 14px;
+            font-weight: 500; padding: 8px 16px; border-radius: 8px; transition: all 0.2s;
+        }
+        .nav-links a:hover { color: white; background: rgba(255,255,255,0.06); }
+        .nav-links .active { color: white; background: rgba(99,102,241,0.15); }
+        .btn-nav-login {
+            background: linear-gradient(135deg, #6366f1, #4f46e5) !important;
+            color: white !important; font-weight: 600 !important;
+        }
+        .btn-nav-logout {
+            background: rgba(255,255,255,0.06) !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+        }
+
+        /* Main content */
+        .container { max-width: 900px; margin: 0 auto; padding: 60px 20px; }
+        .hero { text-align: center; margin-bottom: 50px; }
+        .hero h1 {
+            font-size: 42px; font-weight: 800; letter-spacing: -1.5px;
+            margin-bottom: 16px; line-height: 1.2;
+        }
+        .hero h1 .gradient-text {
+            background: linear-gradient(135deg, #6366f1, #06b6d4, #10b981);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .hero p { color: rgba(255,255,255,0.5); font-size: 17px; max-width: 600px; margin: 0 auto; line-height: 1.6; }
+
+        /* Upload card */
+        .upload-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 24px; padding: 50px; text-align: center;
+            backdrop-filter: blur(10px); position: relative; overflow: hidden;
+        }
+        .upload-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, #6366f1, #06b6d4, transparent);
+        }
+        .upload-icon {
+            width: 80px; height: 80px;
+            background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(6,182,212,0.15));
+            border: 1px solid rgba(99,102,241,0.2);
+            border-radius: 20px; margin: 0 auto 25px;
+            display: flex; align-items: center; justify-content: center; font-size: 36px;
+        }
+        .upload-card h2 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+        .upload-card > p { color: rgba(255,255,255,0.45); font-size: 14px; margin-bottom: 30px; }
+        .drop-zone {
+            border: 2px dashed rgba(255,255,255,0.12); border-radius: 16px;
+            padding: 40px; margin-bottom: 24px; transition: all 0.3s; cursor: pointer;
+        }
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: #6366f1; background: rgba(99,102,241,0.05);
+        }
+        .drop-zone p { color: rgba(255,255,255,0.5); font-size: 14px; margin-bottom: 12px; }
+        .btn-browse {
+            display: inline-block; padding: 10px 24px;
+            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+            color: rgba(255,255,255,0.7); border-radius: 10px; font-size: 13px;
+            font-weight: 600; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-browse:hover { background: rgba(255,255,255,0.1); }
+        .file-input { display: none; }
+        .file-name {
+            color: #06b6d4; font-weight: 600; margin-top: 12px; display: none; font-size: 14px;
+        }
+        .btn-analyze {
+            padding: 16px 48px;
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white; border: none; border-radius: 14px;
+            font-size: 16px; font-weight: 600; font-family: 'Inter', sans-serif;
+            cursor: pointer; transition: all 0.3s;
+        }
+        .btn-analyze:hover:not(:disabled) {
+            transform: translateY(-2px); box-shadow: 0 8px 30px rgba(99,102,241,0.4);
+        }
+        .btn-analyze:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+        .login-notice {
+            display: none; margin-top: 16px; padding: 12px 20px;
+            background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2);
+            border-radius: 12px; color: #fbbf24; font-size: 13px; font-weight: 500;
+        }
+        .login-notice a { color: #6366f1; font-weight: 600; text-decoration: none; }
+        .format-info {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px; padding: 16px; margin-top: 24px; text-align: left;
+        }
+        .format-info h4 { color: rgba(255,255,255,0.6); font-size: 12px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .format-info code {
+            background: rgba(99,102,241,0.15); padding: 2px 8px; border-radius: 6px;
+            font-size: 13px; color: #a5b4fc;
+        }
+        .format-info p { color: rgba(255,255,255,0.35); font-size: 12px; margin-top: 4px; }
+        .alert {
+            padding: 14px 20px; border-radius: 14px; margin-bottom: 24px;
+            font-size: 14px; font-weight: 500;
+        }
+        .alert-danger {
+            background: rgba(239,68,68,0.1); color: #fca5a5;
+            border: 1px solid rgba(239,68,68,0.2);
+        }
+
+        /* Loading overlay */
+        .loading-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(10,14,26,0.85); backdrop-filter: blur(10px);
+            z-index: 1000; align-items: center; justify-content: center;
+        }
+        .loading-overlay.active { display: flex; }
+        .loading-box { text-align: center; }
+        .spinner {
+            width: 56px; height: 56px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top: 3px solid #6366f1;
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+            margin: 0 auto 24px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-box h3 { font-size: 18px; margin-bottom: 8px; }
+        .loading-box p { color: rgba(255,255,255,0.45); font-size: 14px; }
+
+        @media (max-width: 768px) {
+            .navbar { padding: 0 20px; }
+            .hero h1 { font-size: 28px; }
+            .container { padding: 30px 16px; }
+            .upload-card { padding: 30px 20px; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="nav-brand">
+            <div class="nav-brand-icon">M</div>
+            <div class="nav-brand-text">MCA <span>eConsult</span></div>
+        </a>
+        <ul class="nav-links">
+            <li><a href="/" class="active">Upload</a></li>
+            <li><a th:href="@{/history}">History</a></li>
+            <li th:if="${isLoggedIn}">
+                <a th:href="@{/logout}" class="btn-nav-logout" th:text="'Logout (' + ${username} + ')'">Logout</a>
+            </li>
+            <li th:unless="${isLoggedIn}">
+                <a th:href="@{/login}" class="btn-nav-login">Sign In</a>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
+        <div class="hero">
+            <h1>Analyze Stakeholder<br><span class="gradient-text">Feedback with AI</span></h1>
+            <p>Upload a CSV file with stakeholder comments and let our AI models classify sentiment, generate summaries, and produce visual reports.</p>
+        </div>
+
+        <div class="upload-card">
+            <div class="upload-icon">📊</div>
+            <h2>Upload Feedback CSV</h2>
+            <p>Drag and drop or browse to select your CSV file for analysis</p>
+
+            <form th:action="@{/upload}" method="post" enctype="multipart/form-data" id="uploadForm">
+                <input type="hidden" name="_integrity" value="mca-econsult-2024" />
+                <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                    <p>📁 Drag & drop your CSV file here</p>
+                    <span class="btn-browse">Browse Files</span>
+                    <p class="file-name" id="fileName"></p>
+                </div>
+                <input type="file" name="file" id="fileInput" class="file-input" accept=".csv" />
+                <button type="submit" class="btn-analyze" id="uploadBtn" disabled>🔍 Analyze Sentiments</button>
+            </form>
+
+            <div class="login-notice" id="loginNotice">
+                🔒 You need to <a th:href="@{/login}">sign in</a> to upload and analyze files.
+            </div>
+
+            <div class="format-info">
+                <h4>Required CSV Format</h4>
+                <p>Your file must contain a column named <code>comment_text</code></p>
+                <p style="margin-top:6px;">Example: comment_text | "The new policy is excellent" | "Penalties are too harsh"</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-box">
+            <div class="spinner"></div>
+            <h3>Analyzing Sentiments...</h3>
+            <p>Running RoBERTa + BART models on your feedback data</p>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        const isLoggedIn = [[${isLoggedIn != null ? isLoggedIn : false}]];
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileName = document.getElementById('fileName');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const uploadForm = document.getElementById('uploadForm');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const loginNotice = document.getElementById('loginNotice');
+
+        fileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                fileName.textContent = '📄 ' + this.files[0].name;
+                fileName.style.display = 'block';
+                uploadBtn.disabled = false;
+            }
+        });
+
+        dropZone.addEventListener('dragover', function(e) { e.preventDefault(); this.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', function() { this.classList.remove('dragover'); });
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault(); this.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                fileName.textContent = '📄 ' + e.dataTransfer.files[0].name;
+                fileName.style.display = 'block';
+                uploadBtn.disabled = false;
+            }
+        });
+
+        uploadForm.addEventListener('submit', function(e) {
+            if (!isLoggedIn) {
+                e.preventDefault();
+                loginNotice.style.display = 'block';
+                return;
+            }
+            loadingOverlay.classList.add('active');
+        });
+    </script>
+</body>
+</html>
