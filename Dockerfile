@@ -2,7 +2,8 @@
 FROM maven:3.8.4-openjdk-17-slim AS build
 WORKDIR /app
 COPY . .
-RUN chmod +x mvnw && ./mvnw clean package -DskipTests
+# Use system mvn instead of mvnw to avoid environment path issues
+RUN mvn clean package -DskipTests
 
 # --- Run Stage ---
 FROM eclipse-temurin:17-jre-focal
