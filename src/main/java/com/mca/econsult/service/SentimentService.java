@@ -52,8 +52,18 @@ public class SentimentService {
 
                     ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
 
-                    List<Map<String, Object>> batchResults = objectMapper.readValue(
+                    Map<String, Object> result = objectMapper.readValue(response.getBody(), Map.class);
+                    Object dataObj = result.get("data");
+                    List<Map<String, Object>> batchResults;
+                    
+                    if (dataObj instanceof List) {
+                        batchResults = (List<Map<String, Object>>) dataObj;
+                    } else {
+                        // Fallback to legacy format
+                        batchResults = objectMapper.readValue(
                             response.getBody(), new TypeReference<List<Map<String, Object>>>() {});
+                    }
+                    
                     allResults.addAll(batchResults);
                     success = true;
                 } catch (Exception e) {
